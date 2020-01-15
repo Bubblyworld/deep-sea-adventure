@@ -1,4 +1,5 @@
-package main
+// Package state implements the core game state and mechanics.
+package state
 
 import (
 	"errors"
@@ -64,15 +65,15 @@ type Player struct {
 	StashedTreasure []TreasureStack
 }
 
-type GameState struct {
+type State struct {
 	Air     int
 	Round   int
 	Players []Player
 	Tiles   []Tile
 }
 
-func NewGameState(players []Player) *GameState {
-	res := GameState{
+func New(players []Player) *State {
+	res := State{
 		Air:     25,
 		Round:   1,
 		Players: players,
@@ -109,13 +110,30 @@ func NewGameState(players []Player) *GameState {
 }
 
 // Validate returns an error if the game state is illegal.
-func (gs *GameState) Validate() error {
+func (gs *State) Validate() error {
+	pm := make(map[int]bool)
+	for _, p := range gs.Players {
+		if !gs.inBounds(p.Position) {
+			return errors.New("player is in illegal position")
+		}
+
+		if p.Position == 0 {
+			continue // multiple players can occupy submarine
+		}
+
+		if pm[p.Position] {
+			return errors.New("multiple players occupying non-submarine tile")
+		}
+
+		pm[p.Position] = true
+	}
+
 	return nil
 }
 
 // Pickup causes the player to pick-up the treasure stack at their current
 // position. If there isn't a treasure to pick up this will error.
-func (gs *GameState) Pickup(p *Player) error {
+func (gs *State) Pickup(p *Player) error {
 	if err := gs.Validate(); err != nil {
 		return fmt.Errorf("validation error while picking up: %v", err)
 	}
@@ -135,7 +153,7 @@ func (gs *GameState) Pickup(p *Player) error {
 // Drop causes the player to drop the treasure stack with the given index at
 // their current position. If they aren't on an empty tile or the treasure
 // stack doesn't exist, this will error.
-func (gs *GameState) Drop(p *Player, index int) error {
+func (gs *State) Drop(p *Player, index int) error {
 	if err := gs.Validate(); err != nil {
 		return fmt.Errorf("validation error while dropping: %v", err)
 	}
@@ -161,7 +179,7 @@ func (gs *GameState) Drop(p *Player, index int) error {
 // Move moves the player the given number of spaces, hopping over other
 // players as they go. If the player reaches the end of the map, or the
 // submarine if they're going backwards, then they stop (no bounceback).
-func (gs *GameState) Move(p *Player, spaces int) error {
+func (gs *State) Move(p *Player, spaces int) error {
 	if err := gs.Validate(); err != nil {
 		return fmt.Errorf("validation error while moving: %v", err)
 	}
@@ -202,7 +220,7 @@ func (gs *GameState) Move(p *Player, spaces int) error {
 	return nil
 }
 
-func (gs *GameState) inBounds(pos int) bool {
+func (gs *State) inBounds(pos int) bool {
 	return pos >= 0 && pos < len(gs.Tiles)
 }
 
