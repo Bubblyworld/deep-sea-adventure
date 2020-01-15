@@ -1,6 +1,10 @@
 package main
 
-import "math/rand"
+import (
+	"errors"
+	"fmt"
+	"math/rand"
+)
 
 type TreasureType int
 
@@ -64,7 +68,7 @@ type GameState struct {
 	Air     int
 	Round   int
 	Players []Player
-	Map     []Tile
+	Tiles   []Tile
 }
 
 func NewGameState(players []Player) *GameState {
@@ -78,7 +82,7 @@ func NewGameState(players []Player) *GameState {
 	// starting submarine. The next 8 tiles are the treasures marked with one
 	// dot in random order. Then come the two, three and four dot treasures in
 	// similar fashion.
-	res.Map = append(res.Map, Tile{
+	res.Tiles = append(res.Tiles, Tile{
 		Type: TileTypeSubmarine,
 	})
 
@@ -89,7 +93,7 @@ func NewGameState(players []Player) *GameState {
 		})
 
 		for _, v := range vl {
-			res.Map = append(res.Map, Tile{
+			res.Tiles = append(res.Tiles, Tile{
 				Type: TileTypeTreasure,
 				Treasure: &TreasureStack{
 					Treasure{
@@ -102,6 +106,104 @@ func NewGameState(players []Player) *GameState {
 	}
 
 	return &res
+}
+
+// Validate returns an error if the game state is illegal.
+func (gs *GameState) Validate() error {
+	return nil
+}
+
+// Pickup causes the player to pick-up the treasure stack at their current
+// position. If there isn't a treasure to pick up this will error.
+func (gs *GameState) Pickup(p *Player) error {
+	if err := gs.Validate(); err != nil {
+		return fmt.Errorf("validation error while picking up: %v", err)
+	}
+
+	if gs.Tiles[p.Position].Type != TileTypeTreasure {
+		return errors.New("player tried to pick up non-treasure tile")
+	}
+
+	p.HeldTreasure = append(p.HeldTreasure, *gs.Tiles[p.Position].Treasure)
+	gs.Tiles[p.Position] = Tile{
+		Type: TileTypeEmpty,
+	}
+
+	return nil
+}
+
+// Drop causes the player to drop the treasure stack with the given index at
+// their current position. If they aren't on an empty tile or the treasure
+// stack doesn't exist, this will error.
+func (gs *GameState) Drop(p *Player, index int) error {
+	if err := gs.Validate(); err != nil {
+		return fmt.Errorf("validation error while dropping: %v", err)
+	}
+
+	if index < 0 || index >= len(p.HeldTreasure) {
+		return errors.New("player tried to drop non-existent treasure")
+	}
+
+	if gs.Tiles[p.Position].Type != TileTypeEmpty {
+		return errors.New("player tried to drop on non-empty tile")
+	}
+
+	gs.Tiles[p.Position] = Tile{
+		Type:     TileTypeTreasure,
+		Treasure: &p.HeldTreasure[index],
+	}
+	p.HeldTreasure = append(p.HeldTreasure[:index],
+		p.HeldTreasure[:index+1]...)
+
+	return nil
+}
+
+// Move moves the player the given number of spaces, hopping over other
+// players as they go. If the player reaches the end of the map, or the
+// submarine if they're going backwards, then they stop (no bounceback).
+func (gs *GameState) Move(p *Player, spaces int) error {
+	if err := gs.Validate(); err != nil {
+		return fmt.Errorf("validation error while moving: %v", err)
+	}
+
+	// A map of which squares contain players. Note that we don't have to
+	// worry about skipping player 'p' since there's no bounceback.
+	sm := make(map[int]bool)
+	for _, pl := range gs.Players {
+		if pl.Position == 0 {
+			continue // multiple players can occupy submarine
+		}
+
+		sm[pl.Position] = true
+	}
+
+	// Player must always be going forwards unless they've turned around.
+	skip := int(1)
+	if p.TurnedAround {
+		skip = -1
+	}
+	if spaces < 0 {
+		spaces = -spaces
+	}
+
+	for i := 0; i < spaces; i++ {
+		newPos := p.Position + skip
+		for gs.inBounds(newPos) && sm[newPos] {
+			newPos += skip // jump over players
+		}
+
+		if sm[newPos] {
+			return nil // can't actually move, too many players in front
+		}
+
+		p.Position = newPos
+	}
+
+	return nil
+}
+
+func (gs *GameState) inBounds(pos int) bool {
+	return pos >= 0 && pos < len(gs.Tiles)
 }
 
 func getTreasureTypes() []TreasureType {
