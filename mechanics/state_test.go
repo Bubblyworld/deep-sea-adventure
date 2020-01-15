@@ -1,9 +1,9 @@
-package state_test
+package mechanics_test
 
 import (
 	"testing"
 
-	"github.com/bubblyworld/deep-sea-adventure/state"
+	"github.com/bubblyworld/deep-sea-adventure/mechanics"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -134,8 +134,8 @@ func TestPickup(t *testing.T) {
 	assert.NoError(t, gs.Pickup(&gs.Players[1]))
 	assert.Len(t, gs.Players[0].HeldTreasure, 0)
 	assert.Len(t, gs.Players[1].HeldTreasure, 1)
-	assert.Equal(t, state.TileTypeSubmarine, gs.Tiles[0].Type)
-	assert.Equal(t, state.TileTypeEmpty, gs.Tiles[1].Type)
+	assert.Equal(t, mechanics.TileTypeSubmarine, gs.Tiles[0].Type)
+	assert.Equal(t, mechanics.TileTypeEmpty, gs.Tiles[1].Type)
 	assert.Nil(t, gs.Tiles[1].Treasure)
 }
 
@@ -145,29 +145,57 @@ func TestDrop(t *testing.T) {
 	assert.NoError(t, gs.Pickup(&gs.Players[1]))
 	assert.Len(t, gs.Players[0].HeldTreasure, 0)
 	assert.Len(t, gs.Players[1].HeldTreasure, 1)
-	assert.Equal(t, state.TileTypeSubmarine, gs.Tiles[0].Type)
-	assert.Equal(t, state.TileTypeEmpty, gs.Tiles[1].Type)
+	assert.Equal(t, mechanics.TileTypeSubmarine, gs.Tiles[0].Type)
+	assert.Equal(t, mechanics.TileTypeEmpty, gs.Tiles[1].Type)
 	assert.Nil(t, gs.Tiles[1].Treasure)
 
 	assert.Error(t, gs.Drop(&gs.Players[0], 0)) // player 0 has no treasure
 	assert.NoError(t, gs.Drop(&gs.Players[1], 0))
-	assert.Equal(t, state.TileTypeSubmarine, gs.Tiles[0].Type)
-	assert.Equal(t, state.TileTypeTreasure, gs.Tiles[1].Type)
+	assert.Equal(t, mechanics.TileTypeSubmarine, gs.Tiles[0].Type)
+	assert.Equal(t, mechanics.TileTypeTreasure, gs.Tiles[1].Type)
 	assert.NotNil(t, gs.Tiles[1].Treasure)
 }
 
-func newState(pl []int) *state.State {
-	var pll []state.Player
+func TestEndTurn(t *testing.T) {
+	gs := newState([]int{1, 2, 3, 4, 5})
+	gs.Air = 1
+	for i := range gs.Players {
+		assert.NoError(t, gs.Pickup(&gs.Players[i]))
+	}
+	gs.Players[0].TurnedAround = true
+	assert.NoError(t, gs.Move(&gs.Players[0], 1)) // player 0 survives
+	assert.NoError(t, gs.EndTurn())
+
+	assert.Equal(t, 2, gs.Turn)
+	assert.Equal(t, 25, gs.Air)
+	for i, p := range gs.Players {
+		assert.Equal(t, 0, p.Position)
+		assert.False(t, p.TurnedAround)
+		assert.Empty(t, p.HeldTreasure)
+
+		if i == 0 {
+			assert.Len(t, p.StashedTreasure, 1)
+		} else {
+			assert.Empty(t, p.StashedTreasure)
+		}
+	}
+	assert.Len(t, *gs.Tiles[len(gs.Tiles)-1].Treasure, 1)
+	assert.Len(t, *gs.Tiles[len(gs.Tiles)-2].Treasure, 3)
+	assert.Len(t, *gs.Tiles[len(gs.Tiles)-3].Treasure, 1)
+}
+
+func newState(pl []int) *mechanics.State {
+	var pll []mechanics.Player
 	for _, p := range pl {
-		pll = append(pll, state.Player{
+		pll = append(pll, mechanics.Player{
 			Position: p,
 		})
 	}
 
-	return state.New(pll)
+	return mechanics.New(pll)
 }
 
-func assertPositions(t *testing.T, gs *state.State, pl []int) {
+func assertPositions(t *testing.T, gs *mechanics.State, pl []int) {
 	for i, p := range gs.Players {
 		assert.Equal(t, pl[i], p.Position)
 	}

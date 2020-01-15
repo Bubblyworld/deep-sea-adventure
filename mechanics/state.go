@@ -1,5 +1,5 @@
-// Package state implements the core game state and mechanics.
-package state
+// Package mechanics implements the core game state and mechanics.
+package mechanics
 
 import (
 	"errors"
@@ -67,7 +67,7 @@ type Player struct {
 
 type State struct {
 	Air     int
-	Round   int
+	Turn    int
 	Players []Player
 	Tiles   []Tile
 }
@@ -75,7 +75,7 @@ type State struct {
 func New(players []Player) *State {
 	res := State{
 		Air:     25,
-		Round:   1,
+		Turn:    1,
 		Players: players,
 	}
 
@@ -223,6 +223,59 @@ func (gs *State) Move(p *Player, spaces int) error {
 	return nil
 }
 
+// EndTurn kills any players that have yet to reach the submarine and resets
+// the state for the next turn.
+func (gs *State) EndTurn() error {
+	if err := gs.Validate(); err != nil {
+		return fmt.Errorf("validation error while ending turn: %v", err)
+	}
+
+	// Reset all the players, keeping treasure if they survived.
+	var tl []Treasure
+	for i := range gs.Players {
+		p := &gs.Players[i]
+		survived := p.Position == 0
+		p.Position = 0
+		p.TurnedAround = false
+
+		if survived {
+			p.StashedTreasure = append(p.StashedTreasure, p.HeldTreasure...)
+			p.HeldTreasure = nil
+		} else {
+			for _, t := range p.HeldTreasure {
+				tl = append(tl, t...)
+			}
+
+			p.HeldTreasure = nil
+		}
+	}
+
+	// Remove empty tiles from the game.
+	var tiles []Tile
+	for _, t := range gs.Tiles {
+		if t.Type == TileTypeEmpty {
+			continue
+		}
+
+		tiles = append(tiles, t)
+	}
+	gs.Tiles = tiles
+
+	// Place the dead players' treasure in stacks of three at the end.
+	for _, ts := range stack(tl, 3) {
+		ts := ts
+
+		gs.Tiles = append(gs.Tiles, Tile{
+			Type:     TileTypeTreasure,
+			Treasure: &ts,
+		})
+	}
+
+	gs.Turn++
+	gs.Air = 25
+	return nil
+}
+
 func (gs *State) inBounds(pos int) bool {
 	return pos >= 0 && pos < len(gs.Tiles)
 }
@@ -243,4 +296,22 @@ func getTreasureValues(tt TreasureType) []int {
 	}
 
 	return res
+}
+
+func stack(tl []Treasure, size int) []TreasureStack {
+	var cur TreasureStack
+	var tsl []TreasureStack
+	for _, t := range tl {
+		cur = append(cur, t)
+		if len(cur) >= size {
+			tsl = append(tsl, cur)
+			cur = nil
+		}
+	}
+
+	if len(cur) > 0 {
+		tsl = append(tsl, cur)
+	}
+
+	return tsl
 }
