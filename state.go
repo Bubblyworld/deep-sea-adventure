@@ -28,16 +28,43 @@ type Treasure struct {
 
 type TreasureStack []Treasure
 
+type TileType int
+
+const (
+	TileTypeSubmarine = 1
+	TileTypeTreasure  = 2
+	TileTypeEmpty     = 3
+
+	// Should always be last, intended as an EOF marker for iteration.
+	tileTypeSentinel TileType = 4
+)
+
+type Tile struct {
+	Type     TileType
+	Treasure *TreasureStack // non-nil iff type is TileTypeTreasure
+}
+
+type Player struct {
+	Position     int
+	TurnedAround bool
+
+	// HeldTreasure is the stacks of treasure currently held by the player.
+	// Each stack held by the player slows them down by 1 point. If the player
+	// survives the end of round (by getting back to the submarine), any held
+	// stacks are moved in the stashed stacks list.
+	HeldTreasure []TreasureStack
+
+	// StashedTreasure is a list of banked treasure owned by the player. At
+	// the end of 3 rounds, the player with the highest total value of stashed
+	// treasure wins the game.
+	StashedTreasure []TreasureStack
+}
+
 type GameState struct {
 	Air     int
 	Round   int
 	Players []Player
-
-	// Map is stored as a list of TreasureStacks. Map[0] is always an empty
-	// treasure stack and represents the starting submarine. An empty treasure
-	// stack that isn't the submarine represents an empty tile that a player
-	// can drop treasure stacks onto.
-	Map []TreasureStack
+	Map     []Tile
 }
 
 func NewGameState(players []Player) *GameState {
@@ -51,7 +78,10 @@ func NewGameState(players []Player) *GameState {
 	// starting submarine. The next 8 tiles are the treasures marked with one
 	// dot in random order. Then come the two, three and four dot treasures in
 	// similar fashion.
-	res.Map = append(res.Map, nil) // submarine
+	res.Map = append(res.Map, Tile{
+		Type: TileTypeSubmarine,
+	})
+
 	for _, tt := range getTreasureTypes() {
 		vl := getTreasureValues(tt)
 		rand.Shuffle(len(vl), func(i, j int) {
@@ -59,10 +89,13 @@ func NewGameState(players []Player) *GameState {
 		})
 
 		for _, v := range vl {
-			res.Map = append(res.Map, TreasureStack{
-				Treasure{
-					Type:  tt,
-					Value: v,
+			res.Map = append(res.Map, Tile{
+				Type: TileTypeTreasure,
+				Treasure: &TreasureStack{
+					Treasure{
+						Type:  tt,
+						Value: v,
+					},
 				},
 			})
 		}
