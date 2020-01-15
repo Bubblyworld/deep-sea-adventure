@@ -1,7 +1,7 @@
 package mechanics
 
 import (
-	"log"
+	"fmt"
 	"math/rand"
 )
 
@@ -43,12 +43,12 @@ func NewGame(sl []Strategy) *Game {
 // Run plays through the next player's turn using their configured strategy.
 func (g *Game) Run() {
 	if g.State.Turn >= 4 {
-		log.Printf("game is over!")
+		fmt.Printf("game is over!\n")
 		return
 	}
 
 	if g.State.Air <= 0 {
-		log.Printf("round is over, ending and resetting for next round")
+		fmt.Printf("round is over, ending and resetting for next round\n")
 		if err := g.State.EndTurn(); err != nil {
 			panic(err)
 		}
@@ -60,7 +60,7 @@ func (g *Game) Run() {
 	p := &g.State.Players[g.Index]
 	s := g.Strategies[g.Index]
 	if p.TurnedAround && p.Position == 0 {
-		log.Printf("round %d, skipping player %d as they have survived",
+		fmt.Printf("round %d, skipping player %d as they have survived\n",
 			g.State.Turn, g.Index)
 
 		g.Index = (g.Index + 1) % len(g.State.Players)
@@ -73,29 +73,35 @@ func (g *Game) Run() {
 		g.State.Air = 0
 	}
 
-	log.Printf("round %d, player %d to move (air %d -> %d)",
+	fmt.Printf("\n%s\n", g.State)
+	fmt.Printf("round %d, player %d to move (air %d -> %d)\n",
 		g.State.Turn, g.Index, prevAir, g.State.Air)
 
 	if !p.TurnedAround {
 		p.TurnedAround = s.TurnAround(p, g.State)
 
 		if p.TurnedAround {
-			log.Printf("\tplayer %d decides to turn around", g.Index)
+			fmt.Printf("\tplayer %d decides to turn around\n", g.Index)
 		}
 	} else {
-		log.Printf("\tplayer %d has already turned around", g.Index)
+		fmt.Printf("\tplayer %d has already turned around\n", g.Index)
 	}
 
 	roll := roll()
-	log.Printf("\tplayer %d has rolled %d", g.Index, roll)
-	if err := g.State.Move(p, roll); err != nil {
+	moves := roll - len(p.HeldTreasure)
+	if moves < 0 {
+		moves = 0
+	}
+
+	fmt.Printf("\tplayer %d has rolled %d, moving %d\n", g.Index, roll, moves)
+	if err := g.State.Move(p, moves); err != nil {
 		panic(err)
 	}
 
 	switch g.State.Tiles[p.Position].Type {
 	case TileTypeEmpty:
 		if index, ok := s.Drop(p, g.State); ok {
-			log.Printf("\tplayer %d decides to drop treasure", g.Index)
+			fmt.Printf("\tplayer %d decides to drop treasure\n", g.Index)
 
 			if err := g.State.Drop(p, index); err != nil {
 				panic(err)
@@ -104,7 +110,7 @@ func (g *Game) Run() {
 
 	case TileTypeTreasure:
 		if s.Pickup(p, g.State) {
-			log.Printf("\tplayer %d decides to pick up treasure", g.Index)
+			fmt.Printf("\tplayer %d decides to pick up treasure\n", g.Index)
 
 			if err := g.State.Pickup(p); err != nil {
 				panic(err)

@@ -277,6 +277,44 @@ func (gs *State) EndTurn() error {
 	return nil
 }
 
+func (gs *State) String() string {
+	pm := make(map[int]string)
+	for i, p := range gs.Players {
+		if _, ok := pm[p.Position]; ok {
+			pm[p.Position] = "*"
+		} else {
+			pm[p.Position] = fmt.Sprint(i)
+		}
+	}
+
+	str := "------------" + fmt.Sprintf("ROUND %d", gs.Turn) + "------------\n"
+	for i, p := range gs.Players {
+		str += fmt.Sprintf("\t player %d: held(%d), stashed(%d)\n", i,
+			len(p.HeldTreasure), len(p.StashedTreasure))
+	}
+	str += "\t"
+	for i, t := range gs.Tiles {
+		if s, ok := pm[i]; ok {
+			str += s
+			continue
+		}
+
+		switch t.Type {
+		case TileTypeEmpty:
+			str += "."
+
+		case TileTypeTreasure:
+			str += "$"
+
+		case TileTypeSubmarine:
+			str += "@"
+		}
+	}
+	str += "\n-------------------------------"
+
+	return str
+}
+
 func (gs *State) inBounds(pos int) bool {
 	return pos >= 0 && pos < len(gs.Tiles)
 }
