@@ -72,6 +72,7 @@ type State struct {
 	Tiles   []Tile
 }
 
+// TODO: Change the input to an int. Kinda silly right now.
 func New(players []Player) *State {
 	res := State{
 		Air:     25,
