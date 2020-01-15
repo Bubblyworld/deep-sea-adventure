@@ -36,9 +36,9 @@ type TreasureStack []Treasure
 type TileType int
 
 const (
-	TileTypeSubmarine = 1
-	TileTypeTreasure  = 2
-	TileTypeEmpty     = 3
+	TileTypeSubmarine TileType = 1
+	TileTypeTreasure  TileType = 2
+	TileTypeEmpty     TileType = 3
 
 	// Should always be last, intended as an EOF marker for iteration.
 	tileTypeSentinel TileType = 4

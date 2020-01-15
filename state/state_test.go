@@ -128,6 +128,34 @@ func TestMove(t *testing.T) {
 	}
 }
 
+func TestPickup(t *testing.T) {
+	gs := newState([]int{0, 1})
+	assert.Error(t, gs.Pickup(&gs.Players[0]))
+	assert.NoError(t, gs.Pickup(&gs.Players[1]))
+	assert.Len(t, gs.Players[0].HeldTreasure, 0)
+	assert.Len(t, gs.Players[1].HeldTreasure, 1)
+	assert.Equal(t, state.TileTypeSubmarine, gs.Tiles[0].Type)
+	assert.Equal(t, state.TileTypeEmpty, gs.Tiles[1].Type)
+	assert.Nil(t, gs.Tiles[1].Treasure)
+}
+
+func TestDrop(t *testing.T) {
+	gs := newState([]int{0, 1})
+	assert.Error(t, gs.Pickup(&gs.Players[0])) // no treasure at start
+	assert.NoError(t, gs.Pickup(&gs.Players[1]))
+	assert.Len(t, gs.Players[0].HeldTreasure, 0)
+	assert.Len(t, gs.Players[1].HeldTreasure, 1)
+	assert.Equal(t, state.TileTypeSubmarine, gs.Tiles[0].Type)
+	assert.Equal(t, state.TileTypeEmpty, gs.Tiles[1].Type)
+	assert.Nil(t, gs.Tiles[1].Treasure)
+
+	assert.Error(t, gs.Drop(&gs.Players[0], 0)) // player 0 has no treasure
+	assert.NoError(t, gs.Drop(&gs.Players[1], 0))
+	assert.Equal(t, state.TileTypeSubmarine, gs.Tiles[0].Type)
+	assert.Equal(t, state.TileTypeTreasure, gs.Tiles[1].Type)
+	assert.NotNil(t, gs.Tiles[1].Treasure)
+}
+
 func newState(pl []int) *state.State {
 	var pll []state.Player
 	for _, p := range pl {
