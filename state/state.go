@@ -206,11 +206,14 @@ func (gs *State) Move(p *Player, spaces int) error {
 
 	for i := 0; i < spaces; i++ {
 		newPos := p.Position + skip
+		if !gs.inBounds(newPos) {
+			return nil // already at the end
+		}
 		for gs.inBounds(newPos) && sm[newPos] {
 			newPos += skip // jump over players
 		}
 
-		if sm[newPos] {
+		if !gs.inBounds(newPos) || sm[newPos] {
 			return nil // can't actually move, too many players in front
 		}
 
