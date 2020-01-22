@@ -1,9 +1,11 @@
 package state
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidate(t *testing.T) {
@@ -181,6 +183,26 @@ func TestEndRound(t *testing.T) {
 	assert.Len(t, *ss.tiles[len(ss.tiles)-1].Treasure, 1)
 	assert.Len(t, *ss.tiles[len(ss.tiles)-2].Treasure, 3)
 	assert.Len(t, *ss.tiles[len(ss.tiles)-3].Treasure, 1)
+}
+
+// TestRandomStateEvolution runs through a fixed number of random games by
+// picking decisions uniformly at random for a fixed number of turns.
+func TestRandomStateEvolution(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		ss := NewStandardState(6)
+
+		for j := 0; j < 100; j++ {
+			require.NoError(t, ss.validate())
+
+			vdl := ss.ValidDecisions()
+			if len(vdl) == 0 {
+				assert.Equal(t, StageEndOfGame, ss.stage)
+				break // game is over
+			}
+
+			require.NoError(t, ss.Do(vdl[rand.Intn(len(vdl))]))
+		}
+	}
 }
 
 func newState(pl []int) *standardState {
