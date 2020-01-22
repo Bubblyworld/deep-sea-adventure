@@ -87,7 +87,7 @@ func (d Decision) Value() uint16 {
 	return uint16(d) >> 8
 }
 
-func WithValue(d Decision, n int) Decision {
+func withValue(d Decision, n int) Decision {
 	return (d & 0xFF) + Decision(n<<8)
 }
 
@@ -100,6 +100,34 @@ const (
 	decisionTurnYes   Decision = 1 << 5
 	decisionTurnNo    Decision = 1 << 6
 )
+
+func Roll(n int) Decision {
+	return withValue(decisionRoll, n)
+}
+
+func PickUp() Decision {
+	return decisionPickUpYes
+}
+
+func DontPickUp() Decision {
+	return decisionPickUpNo
+}
+
+func Drop(n int) Decision {
+	return withValue(decisionDropYes, n)
+}
+
+func DontDrop() Decision {
+	return decisionDropNo
+}
+
+func Turn() Decision {
+	return decisionTurnYes
+}
+
+func DontTurn() Decision {
+	return decisionTurnNo
+}
 
 // State represents the current state of the game.
 type State interface {
