@@ -4,14 +4,15 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/bubblyworld/deep-sea-adventure/mechanics"
+	"github.com/bubblyworld/deep-sea-adventure/game"
+	"github.com/bubblyworld/deep-sea-adventure/state"
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	// Start a game and run it till completion.
-	g := mechanics.NewGame([]mechanics.Strategy{
+	g := game.New([]game.Strategy{
 		new(alwaysDeeper), new(alwaysDeeper), new(alwaysDeeper)})
 
 	for {
@@ -22,20 +23,14 @@ func main() {
 
 type alwaysDeeper struct{}
 
-func (ad *alwaysDeeper) TurnAround(p *mechanics.Player,
-	gs *mechanics.State) bool {
-
-	return false // never surrender!
+func (ad *alwaysDeeper) Turn(s state.State) bool {
+	return false // never surrender! always deeper!
 }
 
-func (ad *alwaysDeeper) Pickup(p *mechanics.Player,
-	gs *mechanics.State) bool {
-
-	return true // always pickup everything
+func (ad *alwaysDeeper) PickUp(s state.State) bool {
+	return true // always pick everything up
 }
 
-func (ad *alwaysDeeper) Drop(p *mechanics.Player,
-	gs *mechanics.State) (int, bool) {
-
+func (ad *alwaysDeeper) Drop(s state.State) (int, bool) {
 	return 0, false
 }

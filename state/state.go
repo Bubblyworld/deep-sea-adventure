@@ -69,6 +69,7 @@ func (p *Player) Done() bool {
 // Stage represents what phase the game is in, i.e. which node in the game
 // state DFSA is accepting input.
 // TODO: ASCII art of the DFSA.
+//go:generate stringer -type=Stage -trimprefix=Stage
 type Stage int
 
 const (
@@ -105,27 +106,27 @@ func Roll(n int) Decision {
 	return withValue(decisionRoll, n)
 }
 
-func PickUp() Decision {
-	return decisionPickUpYes
-}
+func PickUp(pickUp bool) Decision {
+	if pickUp {
+		return decisionPickUpYes
+	}
 
-func DontPickUp() Decision {
 	return decisionPickUpNo
 }
 
-func Drop(n int) Decision {
-	return withValue(decisionDropYes, n)
-}
+func Drop(n int, drop bool) Decision {
+	if drop {
+		return withValue(decisionDropYes, n)
+	}
 
-func DontDrop() Decision {
 	return decisionDropNo
 }
 
-func Turn() Decision {
-	return decisionTurnYes
-}
+func Turn(turn bool) Decision {
+	if turn {
+		return decisionTurnYes
+	}
 
-func DontTurn() Decision {
 	return decisionTurnNo
 }
 

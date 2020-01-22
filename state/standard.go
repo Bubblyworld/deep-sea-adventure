@@ -95,18 +95,18 @@ func (ss *standardState) ValidDecisions() []Decision {
 		return rolls
 
 	case StagePickUp:
-		return []Decision{PickUp(), DontPickUp()}
+		return []Decision{PickUp(true), PickUp(false)}
 
 	case StageDrop:
-		drops := []Decision{DontDrop()}
+		drops := []Decision{Drop(0, false)}
 		for i := range ss.players[ss.curPlayer].HeldTreasure {
-			drops = append(drops, Drop(i))
+			drops = append(drops, Drop(i, true))
 		}
 
 		return drops
 
 	case StageTurn:
-		return []Decision{Turn(), DontTurn()}
+		return []Decision{Turn(true), Turn(false)}
 
 	case StageEndOfGame:
 		return nil
@@ -217,7 +217,7 @@ func (ss *standardState) toNextTurn() error {
 		return nil
 	}
 
-	ss.curPlayer = (ss.curPlayer + 1) & len(ss.players)
+	ss.curPlayer = (ss.curPlayer + 1) % len(ss.players)
 	cp := &ss.players[ss.curPlayer]
 
 	// If we're not on the submarine tile and we haven't turned around yet,
