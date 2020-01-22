@@ -18,7 +18,7 @@ type standardState struct {
 	tiles     []Tile
 }
 
-func NewStandardState(players int) State {
+func NewStandardState(players int) *standardState {
 	ss := standardState{
 		air:       25,
 		round:     1,
