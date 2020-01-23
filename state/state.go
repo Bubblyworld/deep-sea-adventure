@@ -4,6 +4,8 @@
 // of the underlying data structures.
 package state
 
+import "fmt"
+
 // TreasureType is the kind of treasure a token represents. Treasures are
 // marked by their number of spots in the actual game.
 type TreasureType int
@@ -86,6 +88,33 @@ type Decision uint16
 
 func (d Decision) Value() uint16 {
 	return uint16(d) >> 8
+}
+
+func (d Decision) String() string {
+	switch d & 0xFF {
+	case decisionRoll:
+		return fmt.Sprintf("roll(%d)", d.Value())
+
+	case decisionPickUpYes:
+		return "pickup(true)"
+
+	case decisionPickUpNo:
+		return "pickup(false)"
+
+	case decisionDropYes:
+		return fmt.Sprintf("drop(true, %d)", d.Value())
+
+	case decisionDropNo:
+		return "drop(false)"
+
+	case decisionTurnYes:
+		return "turn(true)"
+
+	case decisionTurnNo:
+		return "turn(false)"
+	}
+
+	return "unknown"
 }
 
 func withValue(d Decision, n int) Decision {

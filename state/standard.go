@@ -24,7 +24,7 @@ func NewStandardState(players int) *standardState {
 		air:       25,
 		round:     1,
 		stage:     StageRoll,
-		curPlayer: 1,
+		curPlayer: 0,
 	}
 
 	for i := 0; i < players; i++ {
@@ -107,6 +107,11 @@ func (ss *standardState) ValidDecisions() []Decision {
 		return drops
 
 	case StageTurn:
+		// If we're at the end of the board we have to turn around.
+		if ss.players[ss.curPlayer].Position == len(ss.tiles)-1 {
+			return []Decision{Turn(true)}
+		}
+
 		return []Decision{Turn(true), Turn(false)}
 
 	case StageEndOfGame:
@@ -215,9 +220,22 @@ func (ss *standardState) Undo() error {
 // toNextTurn performs transition logic to the next player's turn, or possibly
 // the end of the game if the third round has ended.
 func (ss *standardState) toNextTurn() error {
-	// If there's no air left, then the round is over and we should reset for
-	// the next round (or the end of the game if this was round 3).
-	if ss.air <= 0 {
+	// Players who have reached the submarine again no longer need to make any
+	// actions. If everyone has reached the submarine, or the oxygen is done,
+	// the round is over.
+	nextPlayer := (ss.curPlayer + 1) % len(ss.players)
+	for nextPlayer != ss.curPlayer {
+		if !isFinished(ss.players[nextPlayer]) {
+			break // current player is able to take a turn
+		}
+
+		nextPlayer = (nextPlayer + 1) % len(ss.players)
+	}
+
+	ss.curPlayer = nextPlayer
+	cp := ss.players[ss.curPlayer]
+
+	if ss.air <= 0 || isFinished(cp) {
 		if err := ss.endRound(); err != nil {
 			return err
 		}
@@ -230,9 +248,6 @@ func (ss *standardState) toNextTurn() error {
 
 		return nil
 	}
-
-	ss.curPlayer = (ss.curPlayer + 1) % len(ss.players)
-	cp := &ss.players[ss.curPlayer]
 
 	// If we're not on the submarine tile and we haven't turned around yet,
 	// we have the option of doing so.
@@ -437,6 +452,10 @@ func (ss *standardState) clone() *standardState {
 	}
 
 	return &clone
+}
+
+func isFinished(p Player) bool {
+	return p.Position == 0 && p.TurnedAround
 }
 
 func getTreasureTypes() []TreasureType {
