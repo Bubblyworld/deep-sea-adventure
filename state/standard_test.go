@@ -205,6 +205,33 @@ func TestRandomStateEvolution(t *testing.T) {
 	}
 }
 
+func TestUndo(t *testing.T) {
+	ss := newState([]int{0, 1, 2, 3, 4, 5})
+	clone := ss.clone()
+
+	for i := 0; i < 100; i++ {
+		for j := 0; j < 10; j++ {
+			vdl := ss.ValidDecisions()
+			require.NoError(t, ss.validate())
+			require.NoError(t, ss.Do(vdl[rand.Intn(len(vdl))]))
+		}
+
+		for j := 0; j < 10; j++ {
+			require.NoError(t, ss.Undo())
+		}
+
+		assert.Equal(t, clone.air, ss.air)
+		assert.Equal(t, clone.round, ss.round)
+		assert.Equal(t, clone.stage, ss.stage)
+		for i := range ss.players {
+			assert.Equal(t, clone.players[i].Position, ss.players[i].Position)
+		}
+		for i := range ss.tiles {
+			assert.Equal(t, clone.tiles[i].Type, ss.tiles[i].Type)
+		}
+	}
+}
+
 func newState(pl []int) *standardState {
 	ss := NewStandardState(len(pl))
 	for i, pos := range pl {

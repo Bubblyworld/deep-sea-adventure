@@ -16,6 +16,7 @@ type standardState struct {
 	curPlayer int
 	players   []Player
 	tiles     []Tile
+	history   []*standardState
 }
 
 func NewStandardState(players int) *standardState {
@@ -117,6 +118,11 @@ func (ss *standardState) ValidDecisions() []Decision {
 }
 
 func (ss *standardState) Do(d Decision) error {
+	// We're about to alter the state in some way, so push a copy of the state
+	// onto the history stack for Undo() calls.
+	ssCopy := ss.clone()
+	ss.history = append(ss.history, ssCopy)
+
 	var valid bool
 	for _, vd := range ss.ValidDecisions() {
 		if vd == d {
@@ -195,7 +201,15 @@ func (ss *standardState) Do(d Decision) error {
 }
 
 func (ss *standardState) Undo() error {
-	return errors.New("standardState doesn't support undos")
+	if len(ss.history) == 0 {
+		return errors.New("attempted to undo a state with no history")
+	}
+
+	history := ss.history
+	*ss = *history[len(history)-1]
+	ss.history = history[0 : len(history)-1]
+
+	return nil
 }
 
 // toNextTurn performs transition logic to the next player's turn, or possibly
@@ -400,6 +414,29 @@ func (ss *standardState) endRound() error {
 
 func (ss *standardState) inBounds(pos int) bool {
 	return pos >= 0 && pos < len(ss.tiles)
+}
+
+// clone copies every field of the given state by value except the state
+// history, which is copied by reference.
+func (ss *standardState) clone() *standardState {
+	clone := standardState{
+		air:       ss.air,
+		round:     ss.round,
+		stage:     ss.stage,
+		curPlayer: ss.curPlayer,
+		players:   make([]Player, len(ss.players)),
+		tiles:     make([]Tile, len(ss.tiles)),
+	}
+
+	for i, p := range ss.players {
+		clone.players[i] = p
+	}
+
+	for i, t := range ss.tiles {
+		clone.tiles[i] = t
+	}
+
+	return &clone
 }
 
 func getTreasureTypes() []TreasureType {
