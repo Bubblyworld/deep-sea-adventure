@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"github.com/bubblyworld/deep-sea-adventure/eval"
 	"github.com/bubblyworld/deep-sea-adventure/state"
 )
 
@@ -53,7 +54,14 @@ func (g *Game) Run() {
 	fmt.Printf("\tround %d, player %d to move (air before turn: %d)\n",
 		g.State.Round(), g.State.CurrentPlayer(), g.State.Air())
 
-	var err error
+	dm, err := eval.Evaluate(g.State, g.State.CurrentPlayer(), 5)
+	if err != nil {
+		panic(fmt.Errorf("error evaluting position: %v", err))
+	}
+	for d, eval := range dm {
+		fmt.Printf("\t\t%20s: %.4f\n", d, eval)
+	}
+
 	switch g.State.Stage() {
 	case state.StageRoll:
 		roll := roll()
