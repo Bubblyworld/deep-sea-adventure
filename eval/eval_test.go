@@ -34,7 +34,7 @@ func TestEstimate(t *testing.T) {
 	s := state.NewStandardState(6)
 
 	for i := 0; i < 100; i++ {
-		util, err := Estimate(s, 1, 100)
+		util, err := Estimate(s, 1, 100, 10)
 		require.NoError(t, err)
 		assert.True(t, util > 0)
 	}

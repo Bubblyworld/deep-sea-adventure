@@ -54,7 +54,7 @@ func (g *Game) Run() {
 	fmt.Printf("\tround %d, player %d to move (air before turn: %d)\n",
 		g.State.Round(), g.State.CurrentPlayer(), g.State.Air())
 
-	dm, err := eval.Evaluate(g.State, g.State.CurrentPlayer(), 5)
+	dm, err := eval.Evaluate(g.State, 6)
 	if err != nil {
 		panic(fmt.Errorf("error evaluting position: %v", err))
 	}
